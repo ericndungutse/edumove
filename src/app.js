@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import planRoutes from './routes/plan.routes.js';
 import transporterRoute from './routes/transporter.routes.js';
 import travelRouter from './routes/travel.routes.js';
@@ -7,6 +8,7 @@ import authRouter from './routes/auth.routes.js';
 
 const app = express();
 app.use(express.json()); // Middleware to parse JSON
+app.use(cors());
 
 // Use the travel plan routes
 app.use('/api/v1/plans', planRoutes);
