@@ -25,7 +25,7 @@ export const signin = async (req, res, next) => {
 
   // 1) CHECK IF EMAIL AND PASSWORD ARE PRESENT
   if (!email || !password) {
-    return next(new AppError('Please provide email and password'), 400);
+    return res.status(400).json({ message: 'Please provide email and password' });
   }
 
   // 2) CHECK IF USER EXISTS AND PASSWORD IS CORRECT

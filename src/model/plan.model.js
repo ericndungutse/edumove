@@ -9,11 +9,6 @@ const PlanSchema = new mongoose.Schema({
     type: [String], // Array of destinations/sites/districts
     required: true,
   },
-  province: {
-    type: String,
-    enum: ['south', 'north', 'east', 'west', 'kigali city'], // Example privacy levels
-    default: 'public', // Default privacy setting
-  },
 });
 
 const Plan = mongoose.model('Plan', PlanSchema);
