@@ -1,5 +1,15 @@
 import mongoose from 'mongoose';
 
+const slotSchema = new mongoose.Schema(
+  {
+    time: { type: String, required: true },
+    slots: { type: Number, required: true },
+  },
+  {
+    _id: false,
+  }
+);
+
 const scheduleSchema = new mongoose.Schema(
   {
     plan: {
@@ -21,12 +31,7 @@ const scheduleSchema = new mongoose.Schema(
       ref: 'Transporter',
       required: true,
     },
-    timeSlots: [
-      {
-        time: { type: String, required: true },
-        slots: { type: Number, required: true },
-      },
-    ],
+    timeSlots: [slotSchema],
   },
   { timestamps: true }
 );

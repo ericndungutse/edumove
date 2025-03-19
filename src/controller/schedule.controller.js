@@ -1,4 +1,4 @@
-import Schedule from '../models/Schedule.js'; // Adjust the path as needed
+import Schedule from '../model/schedule.model.js';
 
 // Create a new schedule
 export const createSchedule = async (req, res) => {

@@ -5,6 +5,7 @@ import transporterRoute from './routes/transporter.routes.js';
 import travelRouter from './routes/travel.routes.js';
 import userRouter from './routes/user.routes.js';
 import authRouter from './routes/auth.routes.js';
+import scheduleRouter from './routes/schedule.routes.js';
 
 const app = express();
 app.use(express.json()); // Middleware to parse JSON
@@ -16,5 +17,6 @@ app.use('/api/v1/transporters', transporterRoute);
 app.use('/api/v1/travels', travelRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/schedules', scheduleRouter);
 
 export default app;
