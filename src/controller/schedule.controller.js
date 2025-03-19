@@ -14,8 +14,18 @@ export const createSchedule = async (req, res) => {
 // Get all schedules
 export const getAllSchedules = async (req, res) => {
   try {
-    const schedules = await Schedule.find().populate('plan').populate('transporter');
-    res.json(schedules);
+    // If there is an authenticated user and is a transporter, get schedules for that user
+    // Otherwise, get schedules for the specified transporter ID
+    const transporterId = req.user && req.user.role === 'transporter' ? req.user._id : req.params.transporterId;
+
+    const schedules = await Schedule.find({ transporter: transporterId });
+    res.status(200).json({
+      status: 'success',
+      results: schedules.length,
+      data: {
+        schedules,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
