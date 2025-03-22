@@ -89,7 +89,17 @@ const getAllTransporters = async (req, res) => {
   }
 };
 
+const getAllSchools = async (req, res) => {
+  try {
+    const schools = await School.find();
+    res.json(schools);
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 export {
+  getAllSchools,
   getAllUsers,
   getUserById,
   createUser,

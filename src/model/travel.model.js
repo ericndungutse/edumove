@@ -5,17 +5,21 @@ const PaymentDetailsSchema = new mongoose.Schema(
     transactionNumber: { type: String, required: true, unique: true },
     amount: { type: Number, required: true }, // Matches the trip's price
     paymentMethod: { type: String, required: true },
+    status: {
+      type: String,
+      required: true,
+      enum: ['Pending', 'Completed', 'Failed'],
+    },
   },
   { _id: false }
 );
 
 const TravelSchema = new mongoose.Schema(
   {
-    tripDetails: {
+    travelDetails: {
       plan: {
-        name: { type: String, required: true },
-        description: { type: String },
         date: { type: Date, required: true }, // Date of the travel plan
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', required: true },
       },
 
       departure: { type: String, required: true },
@@ -23,15 +27,21 @@ const TravelSchema = new mongoose.Schema(
       price: { type: Number, required: true },
 
       transporter: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         name: { type: String, required: true },
         contact: { type: String, required: true },
-        vehicleNumber: { type: String, required: true },
+        bussNumber: { type: String, required: true },
       },
+      departureTime: { type: String, required: true }, // Departure time of the trip
 
-      departureTime: { type: String, required: true }, // Overall trip time
+      expectedArrivalTime: {
+        type: Date,
+        required: true,
+      },
 
       paymentDetails: {
         type: PaymentDetailsSchema,
+        required: false,
       },
     },
 
@@ -48,17 +58,7 @@ const TravelSchema = new mongoose.Schema(
 
     school: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'School',
-      required: true,
-    },
-
-    destinationArrivalTime: {
-      type: Date,
-      required: true,
-    },
-
-    schoolArrivalTime: {
-      type: Date,
+      ref: 'User',
       required: true,
     },
 
@@ -76,6 +76,30 @@ const TravelSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Generate a unique travel number before saving and should be unique and human readable
+TravelSchema.pre('save', async function (next) {
+  if (this.isNew) {
+    let travelNumber;
+    let isDuplicate = true;
+
+    // Keep regenerating the travel number until it is unique
+    while (isDuplicate) {
+      // Get the last 6 digits of the timestamp and generate a random 4-digit number
+      const shortTimestamp = Date.now().toString().slice(-6); // Take the last 6 digits of the timestamp
+      travelNumber = `TR-${shortTimestamp}-${Math.floor(Math.random() * 10000)}`;
+
+      // Check if the generated travel number already exists in the database
+      const existingTravel = await this.constructor.findOne({ travelNumber });
+      if (!existingTravel) {
+        isDuplicate = false; // If it's unique, stop regenerating
+      }
+    }
+
+    this.travelNumber = travelNumber;
+  }
+  next();
+});
 
 const Travel = mongoose.model('Travel', TravelSchema);
 

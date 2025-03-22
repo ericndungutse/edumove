@@ -29,7 +29,7 @@ export const signin = async (req, res, next) => {
   }
 
   // 2) CHECK IF USER EXISTS AND PASSWORD IS CORRECT
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select('+password');
 
   if (!user || !(await user.comparePassword(password)))
     return res.status(401).json({

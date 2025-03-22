@@ -4,6 +4,7 @@ const slotSchema = new mongoose.Schema(
   {
     time: { type: String, required: true },
     slots: { type: Number, required: true },
+    bussNumber: { type: String, required: true },
   },
   {
     _id: false,
@@ -22,13 +23,18 @@ const scheduleSchema = new mongoose.Schema(
 
     destination: { type: String, required: true },
 
+    expectedArrivalTime: {
+      type: Date,
+      required: true,
+    },
+
     price: {
       type: Number,
       required: true,
     },
     transporter: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Transporter',
+      ref: 'User',
       required: true,
     },
     timeSlots: [slotSchema],
