@@ -4,7 +4,11 @@ const slotSchema = new mongoose.Schema(
   {
     time: { type: String, required: true },
     slots: { type: Number, required: true },
-    bussNumber: { type: String, required: true },
+    busNumber: { type: String, required: true },
+    expectedArrivalTime: {
+      type: Date,
+      required: true,
+    },
   },
   {
     _id: false,
@@ -22,11 +26,6 @@ const scheduleSchema = new mongoose.Schema(
     departure: { type: String, required: true },
 
     destination: { type: String, required: true },
-
-    expectedArrivalTime: {
-      type: Date,
-      required: true,
-    },
 
     price: {
       type: Number,
