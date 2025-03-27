@@ -39,10 +39,10 @@ const TravelSchema = new mongoose.Schema(
         required: true,
       },
 
-      paymentDetails: {
-        type: PaymentDetailsSchema,
-        required: false,
-      },
+      // paymentDetails: {
+      //   type: PaymentDetailsSchema,
+      //   required: false,
+      // },
     },
 
     guardian: {

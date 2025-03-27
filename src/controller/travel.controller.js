@@ -9,6 +9,8 @@ export const createTravel = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
+    console.log(req.body);
+
     const travel = new Travel(req.body);
     await travel.save();
 
