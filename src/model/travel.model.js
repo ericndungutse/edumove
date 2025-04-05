@@ -1,19 +1,5 @@
 import mongoose from 'mongoose';
 
-const PaymentDetailsSchema = new mongoose.Schema(
-  {
-    transactionNumber: { type: String, required: true, unique: true },
-    amount: { type: Number, required: true }, // Matches the trip's price
-    paymentMethod: { type: String, required: true },
-    status: {
-      type: String,
-      required: true,
-      enum: ['Pending', 'Completed', 'Failed'],
-    },
-  },
-  { _id: false }
-);
-
 const TravelSchema = new mongoose.Schema(
   {
     travelDetails: {
@@ -39,10 +25,16 @@ const TravelSchema = new mongoose.Schema(
         required: true,
       },
 
-      // paymentDetails: {
-      //   type: PaymentDetailsSchema,
-      //   required: false,
-      // },
+      paymentDetails: {
+        data: {
+          ref: { type: String },
+          amount: { type: Number },
+          client: { type: String },
+          provider: { type: String, enum: ['mtn', 'airtel'] },
+          status: { type: String, enum: ['pending', 'successful', 'failed'], default: 'pending' },
+          created_at: { type: Date, default: Date.now },
+        },
+      },
     },
 
     guardian: {
@@ -70,7 +62,6 @@ const TravelSchema = new mongoose.Schema(
 
     travelNumber: {
       type: String,
-      required: true,
       unique: true,
     },
   },
