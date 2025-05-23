@@ -132,9 +132,9 @@ export const getAllTravels = async (req, res) => {
 };
 
 // Get a single travel record by ID
-export const getTravelById = async (req, res) => {
+export const getTravelByTravelNumber = async (req, res) => {
   try {
-    const travel = await Travel.findById(req.params.id).populate('school');
+    const travel = await Travel.findOne({ travelNumber: req.params.travelNumber }).populate('school');
     if (!travel) {
       return res.status(404).json({ message: 'Travel not found' });
     }
@@ -218,3 +218,5 @@ export const confirmBoarding = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get Travel By Travel Number
