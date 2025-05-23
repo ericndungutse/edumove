@@ -6,6 +6,6 @@ import { restrictTo } from '../middlewares/authorization.js';
 const router = express.Router({ mergeParams: true });
 
 router.post('/', protect, restrictTo('transporter'), createSchedule);
-router.get('/', protect, restrictTo('transporter'), getAllSchedules);
+router.get('/', getAllSchedules);
 
 export default router;

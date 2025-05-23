@@ -1,7 +1,11 @@
 import Travel from '../model/travel.model.js'; // Adjust the path to your model
 import { validationResult } from 'express-validator';
 import paypack from '../utils/paypack.js';
-import { notifyGuardianOfTravelStatusChange, notifySchoolOfTravelStatusChange } from '../utils/notificationService.js';
+import {
+  notifyGuardianOfTravelStatusChange,
+  notifySchoolOfTravelStatusChange,
+  notifyGuardianOfTravelCreation,
+} from '../utils/notificationService.js';
 
 const findTransaction = async (ref) => {
   let {
@@ -65,9 +69,13 @@ export const createTravel = async (req, res) => {
     await travel.save({ validateBeforeSave: false });
 
     clearInterval(intervalId);
+
+    // Send Email Containing Travel Details
+    await notifyGuardianOfTravelCreation(travel);
+
     // Payment successfull
     res.status(200).json({
-      status: 'sucess',
+      status: 'success',
       message: 'payment was successful',
       data: {
         travel,

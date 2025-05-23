@@ -200,6 +200,37 @@ function generateSchoolEmailTemplate(status, { student, travelDetails, travelNum
   `;
 }
 
+function generateTravelCreationConfirmationEmail({ guardian, student, travelDetails, travelNumber, transporter }) {
+  const arrivalTime = new Date(travelDetails.expectedArrivalTime).toLocaleString();
+  const departureTime = new Date(travelDetails.departureTime).toLocaleString();
+  const price = travelDetails.price;
+  const paymentRef = travelDetails.paymentDetails?.data?.ref;
+
+  return `
+    <html><body style="font-family: Arial; padding: 20px; background-color: #f9f9f9;">
+      <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <h2 style="color: #007BFF;">🎟️ Travel Confirmation for ${student.name}</h2>
+        <p>Dear <strong>${guardian.name}</strong>,</p>
+        <p>Your travel for <strong>${student.name}</strong> has been successfully created and confirmed.</p>
+
+        <table style="width: 100%; margin-top: 20px;">
+          <tr><td><strong>Travel Number:</strong></td><td>${travelNumber}</td></tr>
+          <tr><td><strong>Departure:</strong></td><td>${travelDetails.departure}</td></tr>
+          <tr><td><strong>Destination:</strong></td><td>${travelDetails.destination}</td></tr>
+          <tr><td><strong>Departure Time:</strong></td><td>${departureTime}</td></tr>
+          <tr><td><strong>Expected Arrival:</strong></td><td>${arrivalTime}</td></tr>
+          <tr><td><strong>Transporter:</strong></td><td>${transporter.name}</td></tr>
+          <tr><td><strong>Price:</strong></td><td>RWF ${price}</td></tr>
+          <tr><td><strong>Payment Ref:</strong></td><td>${paymentRef}</td></tr>
+        </table>
+
+        <p style="margin-top: 30px;">Thank you for using <strong>EduMove</strong>.</p>
+        <p>Regards,<br/><strong>EduMove Transport Team</strong></p>
+      </div>
+    </body></html>
+  `;
+}
+
 export async function notifyGuardianOfTravelStatusChange(travel) {
   const { status, guardian, student, travelDetails, travelNumber } = travel;
 
@@ -236,5 +267,27 @@ export async function notifySchoolOfTravelStatusChange(travel) {
     });
   } catch (error) {
     console.error(`Error sending school email for status "${status}":`, error.message);
+  }
+}
+
+export async function notifyGuardianOfTravelCreation(travel) {
+  const { guardian, student, travelDetails, travelNumber } = travel;
+
+  const emailHtml = generateTravelCreationConfirmationEmail({
+    guardian,
+    student,
+    travelDetails,
+    travelNumber,
+    transporter: travelDetails.transporter,
+  });
+
+  try {
+    await sendEmail({
+      to: guardian.email,
+      subject: `🎟️ ${student.name}'s Travel Confirmed - Ticket #${travelNumber}`,
+      body: emailHtml,
+    });
+  } catch (error) {
+    console.error('Failed to send confirmation email to guardian:', error.message);
   }
 }
