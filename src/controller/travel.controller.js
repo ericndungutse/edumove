@@ -115,7 +115,7 @@ export const createTravel = async (req, res) => {
 // Get all travel records
 export const getAllTravels = async (req, res) => {
   try {
-    const travels = await Travel.find().populate('school');
+    const travels = await Travel.find({ 'travelDetails.transporter.id': req.user._id }).populate('school');
     res.status(200).json(travels);
   } catch (error) {
     console.error('Error fetching travels:', error);
@@ -195,7 +195,6 @@ export const confirmBoarding = async (req, res) => {
     const updatedTravel = await travel.save({ validateBeforeSave: false });
 
     await notifyGuardianOfTravelStatusChange(travel);
-    console.log(travel);
 
     await notifySchoolOfTravelStatusChange(travel);
 

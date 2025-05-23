@@ -8,11 +8,12 @@ import {
   confirmBoarding,
 } from '../controller/travel.controller.js';
 import { protect } from '../middlewares/authentication.js';
+import { restrictTo } from '../middlewares/authorization.js';
 
 const router = express.Router();
 
 router.post('/', createTravel);
-router.get('/', getAllTravels);
+router.get('/', protect, restrictTo('transporter'), getAllTravels);
 router.get('/:id', getTravelById);
 router.put('/:id', updateTravel);
 router.delete('/:id', deleteTravel);
