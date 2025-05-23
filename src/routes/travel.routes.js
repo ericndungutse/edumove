@@ -5,7 +5,9 @@ import {
   getTravelById,
   updateTravel,
   deleteTravel,
+  confirmBoarding,
 } from '../controller/travel.controller.js';
+import { protect } from '../middlewares/authentication.js';
 
 const router = express.Router();
 
@@ -14,5 +16,6 @@ router.get('/', getAllTravels);
 router.get('/:id', getTravelById);
 router.put('/:id', updateTravel);
 router.delete('/:id', deleteTravel);
+router.patch('/:travelNumber/boarding', protect, confirmBoarding);
 
 export default router;

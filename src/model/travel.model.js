@@ -18,6 +18,7 @@ const TravelSchema = new mongoose.Schema(
         contact: { type: String, required: true },
         bussNumber: { type: String, required: true },
       },
+      schedule: { type: mongoose.Schema.Types.ObjectId, ref: 'Schedule', required: true },
       departureTime: { type: String, required: true }, // Departure time of the trip
 
       expectedArrivalTime: {
@@ -57,7 +58,7 @@ const TravelSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ['Scheduled', 'In Transit', 'Completed', 'Cancelled'],
+      enum: ['Pending', 'Boarded', 'Arrived At Destination', 'Arrived At School', 'Cancelled'],
     },
 
     travelNumber: {

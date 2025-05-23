@@ -1,6 +1,7 @@
 import Travel from '../model/travel.model.js'; // Adjust the path to your model
 import { validationResult } from 'express-validator';
 import paypack from '../utils/paypack.js';
+import { notifyGuardianOfTravelStatusChange, notifySchoolOfTravelStatusChange } from '../utils/notificationService.js';
 
 const findTransaction = async (ref) => {
   let {
@@ -166,4 +167,47 @@ export const deleteTravel = async (req, res) => {
   }
 };
 
-export const checkout = async (req, res, next) => {};
+// Confirm student boarded the bus
+export const confirmBoarding = async (req, res) => {
+  try {
+    const { travelNumber } = req.params;
+
+    // Find the travel by ID and check if it's available
+    const travel = await Travel.findOne({ travelNumber }).populate('school');
+
+    if (!travel) {
+      return res.status(404).json({ message: 'Travel not found' });
+    }
+
+    // Ensure that only the transporter can confirm the boarding and for which the travel is associated with
+
+    if (req.user._id.toString() !== travel.travelDetails.transporter.id.toString()) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'You are not authorized to confirm boarding for this travel',
+      });
+    }
+
+    // Update the status of the travel to 'Boarded'
+    travel.status = 'Boarded';
+
+    // Save the updated travel document
+    const updatedTravel = await travel.save({ validateBeforeSave: false });
+
+    await notifyGuardianOfTravelStatusChange(travel);
+    console.log(travel);
+
+    await notifySchoolOfTravelStatusChange(travel);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        travel: updatedTravel,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ message: error.message });
+  }
+};
