@@ -6,6 +6,7 @@ import {
   notifySchoolOfTravelStatusChange,
   notifyGuardianOfTravelCreation,
 } from '../utils/notificationService.js';
+import Schedule from '../model/schedule.model.js';
 
 const findTransaction = async (ref) => {
   let {
@@ -121,15 +122,109 @@ export const createTravel = async (req, res) => {
 // };
 
 // Get all travel records
+// ...existing code...
+
+// Get all travel records with filtering
 export const getAllTravels = async (req, res) => {
   try {
-    const travels = await Travel.find({ 'travelDetails.transporter.id': req.user._id }).populate('school');
-    res.status(200).json(travels);
+    const { district, date, timeFrom, timeTo } = req.query;
+
+    // Base query - filter by transporter if user is a transporter
+    let query = {};
+    if (req.user && req.user.role === 'transporter') {
+      query['travelDetails.transporter.id'] = req.user._id;
+    }
+
+    // Add district/city filter
+    if (district) {
+      // Search in both departure and destination fields
+      query.$or = [
+        { 'travelDetails.departure': { $regex: district, $options: 'i' } },
+        { 'travelDetails.destination': { $regex: district, $options: 'i' } },
+      ];
+    }
+
+    // Add date filter
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      query['travelDetails.plan.date'] = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    // Add time range filter
+    if (timeFrom || timeTo) {
+      // We need to handle time filtering carefully since time is stored as a string
+      // First get all travels that might match other criteria
+      const travels = await Travel.find(query).populate('school');
+
+      // Then filter by time if needed
+      let filteredTravels = travels;
+
+      if (timeFrom || timeTo) {
+        filteredTravels = travels.filter((travel) => {
+          const departureTime = travel.travelDetails.departureTime;
+
+          // Skip entries without valid time
+          if (!departureTime) return false;
+
+          // Convert times to comparable format (minutes since midnight)
+          const getMinutes = (timeStr) => {
+            const [time, period] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':').map(Number);
+            let totalMinutes = hours * 60 + minutes;
+            if (period === 'PM' && hours < 12) totalMinutes += 12 * 60;
+            if (period === 'AM' && hours === 12) totalMinutes = minutes;
+            return totalMinutes;
+          };
+
+          const travelMinutes = getMinutes(departureTime);
+
+          // Apply time filters
+          if (timeFrom && timeTo) {
+            const fromMinutes = getMinutes(timeFrom);
+            const toMinutes = getMinutes(timeTo);
+            return travelMinutes >= fromMinutes && travelMinutes <= toMinutes;
+          } else if (timeFrom) {
+            const fromMinutes = getMinutes(timeFrom);
+            return travelMinutes >= fromMinutes;
+          } else if (timeTo) {
+            const toMinutes = getMinutes(timeTo);
+            return travelMinutes <= toMinutes;
+          }
+
+          return true;
+        });
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        results: filteredTravels.length,
+        data: filteredTravels,
+      });
+    }
+
+    // If no time filter, use the database query directly
+    const travels = await Travel.find(query).populate('school');
+
+    res.status(200).json({
+      status: 'success',
+      results: travels.length,
+      data: travels,
+    });
   } catch (error) {
     console.error('Error fetching travels:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// ...existing code...
 
 // Get a single travel record by ID
 export const getTravelByTravelNumber = async (req, res) => {
@@ -219,4 +314,48 @@ export const confirmBoarding = async (req, res) => {
   }
 };
 
-// Get Travel By Travel Number
+// Mark all travels of a schedule as "Arrived At Destination"
+export const markArrivedAtDestination = async (req, res) => {
+  try {
+    const { scheduleId } = req.params;
+
+    // Find the schedule by ID and check if it's available
+    const schedule = await Schedule.findById(scheduleId).populate('transporter');
+
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    // Ensure that only the transporter associated with the schedule can mark travels as "Arrived At Destination"
+    if (req.user._id.toString() !== schedule.transporter._id.toString()) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'You are not authorized to mark travels for this schedule',
+      });
+    }
+
+    // Update the status of all travels associated with the schedule
+    const updatedTravels = await Travel.updateMany(
+      { 'travelDetails.schedule': scheduleId },
+      { $set: { status: 'Arrived At Destination' } }
+    );
+
+    // Notify guardians and schools for each travel
+    const travels = await Travel.find({ 'travelDetails.schedule': scheduleId }).populate('school');
+    for (const travel of travels) {
+      await notifyGuardianOfTravelStatusChange(travel);
+      await notifySchoolOfTravelStatusChange(travel);
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'All travels for the schedule have been marked as "Arrived At Destination"',
+      data: {
+        updatedTravels,
+      },
+    });
+  } catch (error) {
+    console.error('Error marking travels as "Arrived At Destination":', error);
+    res.status(500).json({ message: error.message });
+  }
+};
