@@ -127,7 +127,7 @@ export const createTravel = async (req, res) => {
 // Get all travel records with filtering
 export const getAllTravels = async (req, res) => {
   try {
-    const { district, date, timeFrom, timeTo } = req.query;
+    const { destination, date, timeSlot } = req.query;
 
     // Base query - filter by transporter if user is a transporter
     let query = {};
@@ -135,22 +135,17 @@ export const getAllTravels = async (req, res) => {
       query['travelDetails.transporter.id'] = req.user._id;
     }
 
-    // Add district/city filter
-    if (district) {
-      // Search in both departure and destination fields
-      query.$or = [
-        { 'travelDetails.departure': { $regex: district, $options: 'i' } },
-        { 'travelDetails.destination': { $regex: district, $options: 'i' } },
-      ];
+    // Add destination filter
+    if (destination) {
+      query['travelDetails.destination'] = { $regex: destination, $options: 'i' };
     }
 
-    // Add date filter
+    // Add date filter - filter by plan date
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      // Parse the date string and create start and end of day in UTC
+      const [year, month, day] = date.split('-').map(Number);
+      const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+      const endDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 
       query['travelDetails.plan.date'] = {
         $gte: startDate,
@@ -158,60 +153,13 @@ export const getAllTravels = async (req, res) => {
       };
     }
 
-    // Add time range filter
-    if (timeFrom || timeTo) {
-      // We need to handle time filtering carefully since time is stored as a string
-      // First get all travels that might match other criteria
-      const travels = await Travel.find(query).populate('school');
-
-      // Then filter by time if needed
-      let filteredTravels = travels;
-
-      if (timeFrom || timeTo) {
-        filteredTravels = travels.filter((travel) => {
-          const departureTime = travel.travelDetails.departureTime;
-
-          // Skip entries without valid time
-          if (!departureTime) return false;
-
-          // Convert times to comparable format (minutes since midnight)
-          const getMinutes = (timeStr) => {
-            const [time, period] = timeStr.split(' ');
-            const [hours, minutes] = time.split(':').map(Number);
-            let totalMinutes = hours * 60 + minutes;
-            if (period === 'PM' && hours < 12) totalMinutes += 12 * 60;
-            if (period === 'AM' && hours === 12) totalMinutes = minutes;
-            return totalMinutes;
-          };
-
-          const travelMinutes = getMinutes(departureTime);
-
-          // Apply time filters
-          if (timeFrom && timeTo) {
-            const fromMinutes = getMinutes(timeFrom);
-            const toMinutes = getMinutes(timeTo);
-            return travelMinutes >= fromMinutes && travelMinutes <= toMinutes;
-          } else if (timeFrom) {
-            const fromMinutes = getMinutes(timeFrom);
-            return travelMinutes >= fromMinutes;
-          } else if (timeTo) {
-            const toMinutes = getMinutes(timeTo);
-            return travelMinutes <= toMinutes;
-          }
-
-          return true;
-        });
-      }
-
-      return res.status(200).json({
-        status: 'success',
-        results: filteredTravels.length,
-        data: filteredTravels,
-      });
+    // Add time slot filter
+    if (timeSlot) {
+      query['travelDetails.departureTime'] = timeSlot;
     }
 
-    // If no time filter, use the database query directly
-    const travels = await Travel.find(query).populate('school');
+    // Execute query with population
+    const travels = await Travel.find(query).populate('school').populate('travelDetails.plan.id');
 
     res.status(200).json({
       status: 'success',

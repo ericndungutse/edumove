@@ -6,6 +6,7 @@ import { User } from '../src/model/user.model.js';
 import mongoose from 'mongoose';
 
 let transporterToken, transporterId, scheduleId, travelId;
+let testDate, testPlanId;
 
 beforeAll(async () => {
   // Connect to the test database
@@ -28,9 +29,15 @@ beforeAll(async () => {
   });
   transporterToken = res.body.token;
 
+  // Create test date and plan ID
+  // Use UTC date to avoid timezone issues
+  const now = new Date();
+  testDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  testPlanId = new mongoose.Types.ObjectId();
+
   // Create a schedule
   const schedule = new Schedule({
-    plan: new mongoose.Types.ObjectId(),
+    plan: testPlanId,
     departure: 'Kigali',
     destination: 'Huye',
     price: 5000,
@@ -40,47 +47,85 @@ beforeAll(async () => {
         time: '07:00 AM',
         slots: 40,
         busNumber: 'KT-001',
-        expectedArrivalTime: new Date(),
+        expectedArrivalTime: testDate,
       },
     ],
   });
   await schedule.save();
   scheduleId = schedule._id;
 
-  // Create a travel record
-  const travel = new Travel({
-    travelDetails: {
-      plan: {
-        date: new Date(),
-        id: new mongoose.Types.ObjectId(),
+  // Create multiple travel records with different destinations and times
+  const travels = [
+    {
+      travelDetails: {
+        plan: {
+          date: testDate,
+          id: testPlanId,
+        },
+        departure: 'Kigali',
+        destination: 'Huye',
+        price: 5000,
+        transporter: {
+          id: transporterId,
+          name: 'Test Transporter',
+          contact: '+250780000000',
+          bussNumber: 'KT-001',
+        },
+        schedule: scheduleId,
+        departureTime: '07:00 AM',
+        expectedArrivalTime: testDate,
       },
-      departure: 'Kigali',
-      destination: 'Huye',
-      price: 5000,
-      transporter: {
-        id: transporterId,
-        name: 'Test Transporter',
-        contact: '+250780000000',
-        bussNumber: 'KT-001',
+      guardian: {
+        name: 'Test Guardian 1',
+        email: 'guardian1@test.com',
+        phoneNumber: '+250780000001',
+        address: 'Test Address 1',
       },
-      schedule: scheduleId,
-      departureTime: '07:00 AM',
-      expectedArrivalTime: new Date(),
+      student: {
+        name: 'Test Student 1',
+      },
+      school: new mongoose.Types.ObjectId(),
+      status: 'Pending',
     },
-    guardian: {
-      name: 'Test Guardian',
-      email: 'guardian@test.com',
-      phoneNumber: '+250780000001',
-      address: 'Test Address',
+    {
+      travelDetails: {
+        plan: {
+          date: testDate,
+          id: testPlanId,
+        },
+        departure: 'Kigali',
+        destination: 'Musanze',
+        price: 6000,
+        transporter: {
+          id: transporterId,
+          name: 'Test Transporter',
+          contact: '+250780000000',
+          bussNumber: 'KT-002',
+        },
+        schedule: scheduleId,
+        departureTime: '08:00 AM',
+        expectedArrivalTime: testDate,
+      },
+      guardian: {
+        name: 'Test Guardian 2',
+        email: 'guardian2@test.com',
+        phoneNumber: '+250780000002',
+        address: 'Test Address 2',
+      },
+      student: {
+        name: 'Test Student 2',
+      },
+      school: new mongoose.Types.ObjectId(),
+      status: 'Pending',
     },
-    student: {
-      name: 'Test Student',
-    },
-    school: new mongoose.Types.ObjectId(),
-    status: 'Pending',
-  });
-  await travel.save();
-  travelId = travel._id;
+  ];
+
+  // Save all travel records
+  for (const travelData of travels) {
+    const travel = new Travel(travelData);
+    await travel.save();
+    if (!travelId) travelId = travel._id; // Save the first travel ID for other tests
+  }
 });
 
 afterAll(async () => {
@@ -92,11 +137,68 @@ afterAll(async () => {
 });
 
 describe('Travel Endpoints', () => {
-  test('GET /api/v1/travels - Fetch All Travels', async () => {
-    const res = await request(app).get('/api/v1/travels').set('Authorization', `Bearer ${transporterToken}`);
+  describe('GET /api/v1/travels - Fetch All Travels', () => {
+    test('should fetch all travels for transporter', async () => {
+      const res = await request(app).get('/api/v1/travels').set('Authorization', `Bearer ${transporterToken}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body.results).toBeGreaterThan(0);
+      expect(res.status).toBe(200);
+      expect(res.body.results).toBeGreaterThan(0);
+    });
+
+    test('should filter travels by destination', async () => {
+      const res = await request(app)
+        .get('/api/v1/travels?destination=Huye')
+        .set('Authorization', `Bearer ${transporterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.results).toBe(1);
+      expect(res.body.data[0].travelDetails.destination).toBe('Huye');
+    });
+
+    test('should filter travels by date', async () => {
+      // Format date as YYYY-MM-DD
+      const dateStr = testDate.toISOString().split('T')[0];
+      const res = await request(app)
+        .get(`/api/v1/travels?date=${dateStr}`)
+        .set('Authorization', `Bearer ${transporterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.results).toBe(2); // Both travels are on the same date
+
+      // Compare dates in UTC
+      const responseDate = new Date(res.body.data[0].travelDetails.plan.date);
+      expect(responseDate.getUTCFullYear()).toBe(testDate.getUTCFullYear());
+      expect(responseDate.getUTCMonth()).toBe(testDate.getUTCMonth());
+      expect(responseDate.getUTCDate()).toBe(testDate.getUTCDate());
+    });
+
+    test('should filter travels by time slot', async () => {
+      const res = await request(app)
+        .get('/api/v1/travels?timeSlot=07:00 AM')
+        .set('Authorization', `Bearer ${transporterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.results).toBe(1);
+      expect(res.body.data[0].travelDetails.departureTime).toBe('07:00 AM');
+    });
+
+    test('should combine multiple filters', async () => {
+      const dateStr = testDate.toISOString().split('T')[0];
+      const res = await request(app)
+        .get(`/api/v1/travels?destination=Huye&date=${dateStr}&timeSlot=07:00 AM`)
+        .set('Authorization', `Bearer ${transporterToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.results).toBe(1);
+      expect(res.body.data[0].travelDetails.destination).toBe('Huye');
+      expect(res.body.data[0].travelDetails.departureTime).toBe('07:00 AM');
+
+      // Compare dates in UTC
+      const responseDate = new Date(res.body.data[0].travelDetails.plan.date);
+      expect(responseDate.getUTCFullYear()).toBe(testDate.getUTCFullYear());
+      expect(responseDate.getUTCMonth()).toBe(testDate.getUTCMonth());
+      expect(responseDate.getUTCDate()).toBe(testDate.getUTCDate());
+    });
   });
 
   test('GET /api/v1/travels/:travelNumber - Fetch Travel by Travel Number', async () => {
