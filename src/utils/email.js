@@ -26,7 +26,7 @@ async function sendEmail(options) {
       html: options.body,
     });
 
-    if (data.error) throw new Error(data.error.message);
+    if (data.error !== null) throw new Error(data.error.message);
     return data;
   } catch (error) {
     throw new Error(error);

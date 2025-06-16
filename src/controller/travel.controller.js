@@ -271,6 +271,7 @@ export const confirmBoarding = async (req, res) => {
 export const markArrivedAtDestination = async (req, res) => {
   try {
     const { scheduleId } = req.params;
+    const { timeSlot } = req.query;
 
     // Find the schedule by ID and check if it's available
     const schedule = await Schedule.findById(scheduleId).populate('transporter');
@@ -287,14 +288,14 @@ export const markArrivedAtDestination = async (req, res) => {
       });
     }
 
-    // Update the status of all travels associated with the schedule
-    const updatedTravels = await Travel.updateMany(
-      { 'travelDetails.schedule': scheduleId },
-      { $set: { status: 'Arrived At Destination' } }
-    );
+    // Build the query to filter travels by schedule and optionally by time slot
+    const query = { 'travelDetails.schedule': scheduleId, 'travelDetails.departureTime': timeSlot };
+
+    // Update the status of all travels matching the query
+    const updatedTravels = await Travel.updateMany(query, { $set: { status: 'Arrived At Destination' } });
 
     // Notify guardians and schools for each travel
-    const travels = await Travel.find({ 'travelDetails.schedule': scheduleId }).populate('school');
+    const travels = await Travel.find(query).populate('school');
     for (const travel of travels) {
       await notifyGuardianOfTravelStatusChange(travel);
       await notifySchoolOfTravelStatusChange(travel);
@@ -302,7 +303,7 @@ export const markArrivedAtDestination = async (req, res) => {
 
     res.status(200).json({
       status: 'success',
-      message: 'All travels for the schedule have been marked as "Arrived At Destination"',
+      message: 'All travels for the schedule and specified time slot have been marked as "Arrived At Destination"',
       data: {
         updatedTravels,
       },
