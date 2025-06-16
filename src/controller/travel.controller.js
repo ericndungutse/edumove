@@ -127,7 +127,7 @@ export const createTravel = async (req, res) => {
 // Get all travel records with filtering
 export const getAllTravels = async (req, res) => {
   try {
-    const { destination, date, timeSlot } = req.query;
+    const { destination, date, timeSlot, scheduleId } = req.query;
 
     // Base query - filter by transporter if user is a transporter
     let query = {};
@@ -156,6 +156,11 @@ export const getAllTravels = async (req, res) => {
     // Add time slot filter
     if (timeSlot) {
       query['travelDetails.departureTime'] = timeSlot;
+    }
+
+    // Add schedule ID filter
+    if (scheduleId) {
+      query['travelDetails.schedule'] = scheduleId;
     }
 
     // Execute query with population
