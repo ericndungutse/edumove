@@ -20,7 +20,7 @@ router.post('/', createTravel);
 // - date: Filter by travel date (YYYY-MM-DD)
 // - timeFrom: Filter by departure time (e.g., "08:00 AM")
 // - timeTo: Filter by departure time (e.g., "05:00 PM")
-router.get('/', protect, restrictTo('transporter'), getAllTravels);
+router.get('/', protect, restrictTo('transporter', 'school'), getAllTravels);
 router.get('/:travelNumber', getTravelByTravelNumber);
 router.put('/:id', updateTravel);
 router.delete('/:id', deleteTravel);

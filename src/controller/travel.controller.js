@@ -131,8 +131,17 @@ export const getAllTravels = async (req, res) => {
 
     // Base query - filter by transporter if user is a transporter
     let query = {};
-    if (req.user && req.user.role === 'transporter') {
-      query['travelDetails.transporter.id'] = req.user._id;
+    if (req.user && (req.user.role === 'transporter' || req.user.role === 'school')) {
+      if (req.user.role === 'transporter') {
+        query['travelDetails.transporter.id'] = req.user._id;
+      } else if (req.user.role === 'school') {
+        query['school'] = req.user._id;
+      } else {
+        return res.status(403).json({
+          status: 'fail',
+          message: 'You are not authorized to view this resource',
+        });
+      }
     }
 
     // Add destination filter
