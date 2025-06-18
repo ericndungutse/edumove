@@ -58,7 +58,7 @@ const TravelSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ['Pending', 'Boarded', 'Arrived At Destination', 'Arrived At School', 'Cancelled'],
+      enum: ['Pending', 'Boarded', 'Arrived At Destination', 'Arrived At School', 'Cancelled', 'Left School'],
     },
 
     travelNumber: {

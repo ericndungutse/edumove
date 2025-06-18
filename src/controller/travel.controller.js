@@ -322,3 +322,39 @@ export const markArrivedAtDestination = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Mark a student as "Arrived At School" by travelNumber
+export const markArrivedAtSchool = async (req, res) => {
+  try {
+    const { travelNumber } = req.params;
+
+    // Find the travel by travelNumber
+    const travel = await Travel.findOne({ travelNumber }).populate('school');
+    if (!travel) {
+      return res.status(404).json({ message: 'Travel not found' });
+    }
+
+    // Ensure only the school role holder and matching school can perform this action
+    if (!req.user || travel.school._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'You are not authorized to mark this travel as Arrived At School',
+      });
+    }
+
+    // Update the status
+    travel.status = 'Arrived At School';
+    const updatedTravel = await travel.save({ validateBeforeSave: false });
+
+    // Notify guardians and school
+    await notifyGuardianOfTravelStatusChange(travel);
+    res.status(200).json({
+      status: 'success',
+      message: 'Student marked as Arrived At School',
+      data: { travel: updatedTravel },
+    });
+  } catch (error) {
+    console.error('Error marking travel as Arrived At School:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

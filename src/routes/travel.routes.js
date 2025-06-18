@@ -7,6 +7,7 @@ import {
   confirmBoarding,
   getTravelByTravelNumber,
   markArrivedAtDestination,
+  markArrivedAtSchool,
 } from '../controller/travel.controller.js';
 import { protect } from '../middlewares/authentication.js';
 import { restrictTo } from '../middlewares/authorization.js';
@@ -320,6 +321,34 @@ const router = express.Router();
  *       404:
  *         description: Travel not found
  */
+/**
+ * @swagger
+ * /api/v1/travels/{travelNumber}/arrived-at-school:
+ *   patch:
+ *     summary: Mark a student as Arrived At School (school only)
+ *     tags: [Travels]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Only accessible by school role. The travel's school must match the logged-in user.
+ *     parameters:
+ *       - in: path
+ *         name: travelNumber
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The travel number
+ *     responses:
+ *       200:
+ *         description: Student marked as Arrived At School
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Travel'
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Travel not found
+ */
 
 router.post('/', createTravel);
 
@@ -334,5 +363,6 @@ router.put('/:id', updateTravel);
 router.delete('/:id', deleteTravel);
 router.patch('/:travelNumber/boarding', protect, confirmBoarding);
 router.patch('/:scheduleId/arrived-at-destination', protect, restrictTo('transporter'), markArrivedAtDestination);
+router.patch('/:travelNumber/arrived-at-school', protect, restrictTo('school'), markArrivedAtSchool);
 
 export default router;
