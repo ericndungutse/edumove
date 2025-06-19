@@ -1,5 +1,5 @@
 import express from 'express';
-import { signin } from '../controller/auth.controller.js';
+import { signin, requestPasswordReset } from '../controller/auth.controller.js';
 
 const router = express.Router();
 
@@ -29,5 +29,29 @@ const router = express.Router();
  *         description: Unauthorized
  */
 router.post('/login', signin);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Request password reset code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Reset code sent to email
+ *       404:
+ *         description: No user found with that email
+ */
+router.post('/reset-password', requestPasswordReset);
 
 export default router;

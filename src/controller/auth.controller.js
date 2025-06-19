@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../model/user.model.js';
+import sendEmail from '../utils/email.js';
+import crypto from 'crypto';
 
 const signToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -39,4 +41,39 @@ export const signin = async (req, res, next) => {
 
   // 3) IF EVERYTHING OK, SIGN AND SEND TOKEN TO CLIENT
   createAndSendToken(user, 200, res);
+};
+
+export const requestPasswordReset = async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Please provide your email address.' });
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ message: 'No user found with that email.' });
+  }
+
+  // Generate 6-digit code
+  const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+
+  user.passwordResetCode = resetCode;
+  user.passwordResetExpires = new Date(expires);
+  await user.save({ validateBeforeSave: false });
+
+  // Send email
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: 'Your EduMove Password Reset Code',
+      body: `<p>Hello ${user.name},</p><p>Your password reset code is: <b>${resetCode}</b></p><p>This code will expire in 10 minutes.</p>`,
+    });
+    res.status(200).json({ status: 'success', message: 'Reset code sent to email.' });
+  } catch (err) {
+    user.passwordResetCode = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    res.status(500).json({ message: 'There was an error sending the email. Please try again later.' });
+  }
 };
