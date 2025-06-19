@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../model/user.model.js';
 import sendEmail from '../utils/email.js';
-import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 const signToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -76,4 +76,26 @@ export const requestPasswordReset = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
     res.status(500).json({ message: 'There was an error sending the email. Please try again later.' });
   }
+};
+
+export const resetPasswordWithCode = async (req, res, next) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ message: 'Please provide email, code, and new password.' });
+  }
+
+  const user = await User.findOne({ email, passwordResetCode: code });
+  if (!user || !user.passwordResetExpires || user.passwordResetExpires < Date.now()) {
+    return res.status(400).json({ message: 'Invalid or expired reset code.' });
+  }
+
+  user.password = newPassword;
+  // user.passwordResetCode = undefined;
+  // user.passwordResetExpires = undefined;
+
+  console.log(user);
+
+  await user.save();
+
+  res.status(200).json({ status: 'success', message: 'Password has been reset successfully.' });
 };

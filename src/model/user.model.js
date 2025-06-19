@@ -16,7 +16,11 @@ const userSchema = new mongoose.Schema(
   options
 );
 
-// Hash Password
+// Compare Password
+userSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
 userSchema.pre('save', async function (next) {
   // CHECK IF PASSWORD WAS MODIFIED
   // IF NO, Return AND GO OVER
@@ -24,14 +28,8 @@ userSchema.pre('save', async function (next) {
 
   // IF YES HASH THE PASSWORD
   this.password = await bcrypt.hash(this.password, 12);
-
   next();
 });
-
-// Compare Password
-userSchema.methods.comparePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
 
 const User = mongoose.model('User', userSchema);
 
