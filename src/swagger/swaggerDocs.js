@@ -18,6 +18,10 @@ const swaggerOptions = {
         url: 'http://localhost:3000',
         description: 'Development Server',
       },
+      {
+        url: 'https://edumove.onrender.com',
+        description: 'Production Server',
+      },
     ],
     components: {
       securitySchemes: {
