@@ -1,4 +1,5 @@
 import { User, Transporter, School } from '../model/user.model.js';
+import sendEmail from '../utils/email.js';
 
 // Generic function to handle errors
 const handleError = (res, error) => res.status(500).json({ error: error.message });
@@ -82,9 +83,30 @@ const deleteUser = async (req, res) => {
 const createTransporter = async (req, res) => {
   try {
     const body = req.body;
-    if (!body.password) body.password = process.env.DEFAULT_PASSWORD;
+    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    if (!body.password) body.password = defaultPassword;
     const transporter = new Transporter(body);
     await transporter.save();
+
+    // send welcome email
+    try {
+      await sendEmail({
+        to: transporter.email,
+        subject: 'Welcome to EduMove',
+        body: `
+        <h1>Welcome, ${transporter.name}!</h1>
+        <p>Your account has been created successfully.</p>
+        <p>You can now login to your account using the following credentials:</p>
+        <p>Email: ${transporter.email}</p>
+        <p>Password: ${defaultPassword}</p>
+        `,
+      });
+
+      console.log('Email Sent');
+    } catch (e) {
+      console.log('failed to send email', e.message);
+    }
+
     res.status(201).json(transporter);
   } catch (error) {
     handleError(res, error);

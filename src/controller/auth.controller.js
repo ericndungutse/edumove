@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../model/user.model.js';
 import sendEmail from '../utils/email.js';
-import bcrypt from 'bcrypt';
 
 const signToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {

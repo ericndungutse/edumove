@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import morgan from 'morgan';
 import planRoutes from './routes/plan.routes.js';
 import transporterRoute from './routes/transporter.routes.js';
 import travelRouter from './routes/travel.routes.js';
@@ -8,6 +9,7 @@ import authRouter from './routes/auth.routes.js';
 import scheduleRouter from './routes/schedule.routes.js';
 import schooRoutes from './routes/school.routes.js';
 const app = express();
+app.use(morgan('common'));
 app.use(express.json()); // Middleware to parse JSON
 app.use(cors());
 
