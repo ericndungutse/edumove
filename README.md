@@ -1,85 +1,274 @@
-# EduMove
+# EduMove: Your Partner in Educational Transportation
 
-A Node.js backend application for managing educational movement and transportation services.
+EduMove is a robust, Node.js-powered backend solution engineered to streamline and manage educational transportation services. It serves as a central hub for schools, transporters, and guardians, ensuring safe, efficient, and transparent travel for students.
 
-## Description
+## 📖 Table of Contents
 
-EduMove is a RESTful API service built with Express.js and MongoDB, designed to facilitate educational transportation management. The application handles user authentication, payment processing, and various educational transportation-related operations.
+- [✨ Features](#-features)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🗃️ Database Schema](#️-database-schema)
+- [🔄 Workflows](#-workflows)
+  - [User Registration](#user-registration)
+  - [Travel Booking](#travel-booking)
+- [🔌 API Documentation](#-api-documentation)
+- [🚀 Getting Started](#-getting-started)
+- [📁 Project Structure](#-project-structure)
+- [🤝 Contributing](#-contributing)
+- [📜 License](#-license)
 
-## Technologies Used
+## ✨ Features
 
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- JSON Web Tokens (JWT) for authentication
-- bcrypt for password hashing
-- PayPack for payment processing
-- Resend for email services
-- Express Validator for input validation
-- CORS enabled
+- **Role-Based Access Control (RBAC)**: Differentiated access and functionalities for Admins, Schools, Transporters, and Guardians/Students.
+- **Secure Authentication**: Utilizes JSON Web Tokens (JWT) for secure, stateless authentication.
+- **Travel Planning & Scheduling**: Enables transporters to define travel plans and detailed schedules.
+- **Real-Time Booking**: Allows guardians to book travel for students in real-time.
+- **Payment Integration**: Integrated with PayPack for seamless and secure payment processing.
+- **Email Notifications**: Keeps users informed about bookings, payments, and other important events via email.
+- **Input Validation**: Ensures data integrity through rigorous server-side validation.
+- **Comprehensive API Documentation**: Leverages Swagger for clear and interactive API documentation.
 
-## Project Structure
+## 🏗️ System Architecture
+
+EduMove is built on a modern, scalable, and maintainable technology stack:
+
+- **Backend**: Node.js with Express.js for building robust RESTful APIs.
+- **Database**: MongoDB with Mongoose for flexible, schema-based data modeling.
+- **Authentication**: JWT and bcrypt for password hashing.
+- **Payment**: PayPack for handling financial transactions.
+- **Email**: Resend for reliable email delivery.
+
+## 🗃️ Database Schema
+
+The database schema is designed to be flexible and scalable, using Mongoose discriminators to manage different user roles within a single collection.
+
+```mermaid
+erDiagram
+    User {
+        string name
+        string email
+        string phoneNumber
+        string password
+        string role
+    }
+
+    School {
+        string district
+        string sector
+        string cell
+        string village
+    }
+
+    Transporter {
+        string areaOfOperations
+    }
+
+    Plan {
+        date date
+        string destinations
+    }
+
+    Schedule {
+        string departure
+        string destination
+        number price
+    }
+
+    Travel {
+        string departure
+        string destination
+        number price
+        string status
+        string travelNumber
+    }
+
+    User ||--o{ School : "is a"
+    User ||--o{ Transporter : "is a"
+    Plan ||--|{ Schedule : "has"
+    Schedule ||--o{ Travel : "has"
+    Plan ||--o{ Travel : "has"
+    Transporter ||--o{ Schedule : "creates"
+    School ||--o{ Travel : "for"
+    Transporter ||--o{ Travel : "by"
+
+    subgraph "Time Slot"
+        Schedule o-- "many" TimeSlot
+        TimeSlot {
+            string time
+            number slots
+            string busNumber
+            date expectedArrivalTime
+        }
+    end
+    subgraph "Guardian Info"
+        Travel o-- "1" Guardian
+        Guardian {
+            string name
+            string email
+            string phoneNumber
+            string address
+        }
+    end
+     subgraph "Student Info"
+        Travel o-- "1" Student
+        Student {
+            string name
+        }
+    end
+
+    subgraph "Payment Details"
+        Travel o-- "1" Payment
+        Payment{
+            string ref
+            number amount
+            string client
+            string provider
+            string status
+        }
+    end
+```
+
+## 🔄 Workflows
+
+### User Registration
+
+The user registration process is designed to handle different user roles seamlessly.
+
+```mermaid
+graph TD
+    A[Start] --> B{User provides<br/>name, email, phone,<br/>password, and role};
+    B --> C{Role?};
+    C -->|Student/Guardian| D[Create Base User];
+    C -->|School| E[Create User with<br/>School details];
+    C -->|Transporter| F[Create User with<br/>Transporter details];
+    D --> G{Hash password};
+    E --> G;
+    F --> G;
+    G --> H[Save User to Database];
+    H --> I[Generate JWT Token];
+    I --> J[Return Token to User];
+    J --> K[End];
+```
+
+### Travel Booking
+
+The travel booking workflow involves multiple stakeholders and is designed for clarity and efficiency.
+
+```mermaid
+graph TD
+    subgraph "Pre-Travel Setup (Admin/Transporter)"
+        A[Admin/Transporter defines a Travel Plan] --> B(Plan created with date and destinations);
+        B --> C{Transporter creates a Schedule};
+        C --> D(Schedule linked to Plan with departure,<br/>destination, price, and time slots);
+    end
+
+    subgraph "Travel Booking (Guardian/Student)"
+        E[Guardian/Student browses available Schedules] --> F{Selects a Schedule};
+        F --> G[Provide Guardian and Student details];
+        G --> H{Initiate Payment};
+        H --> I{Payment successful?};
+        I -->|Yes| J[Create Travel record];
+        I -->|No| K[Fail and notify user];
+        J --> L[Link Travel to Schedule, Plan, User];
+        L --> M[Generate unique Travel Number];
+        M --> N[Notify Guardian, School, and Transporter];
+    end
+
+    subgraph "Travel Execution"
+       O[Student boards the bus] --> P{Update Travel status to 'Boarded'};
+       P --> Q[Bus arrives at destination] --> R{Update status to 'Arrived At Destination'};
+       R --> S[Bus arrives at school] --> T{Update status to 'Arrived At School'};
+    end
+
+    D --> E;
+    N --> O;
+    K --> E;
+```
+
+## 🔌 API Documentation
+
+Our API is fully documented using Swagger. To access the interactive documentation, run the application and navigate to `/api-docs` in your browser.
+
+- **Local**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Production**: [https://edumove.onrender.com/api-docs](https://edumove.onrender.com/api-docs)
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v14 or higher)
+- [MongoDB](https://www.mongodb.com/) instance (local or cloud-hosted)
+- A [PayPack](https://paypack.rw/) account for payment processing.
+- A [Resend](https://resend.com/) account for email services.
+
+### Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone <repository-url>
+    cd edumove
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    npm install
+    ```
+
+3.  **Set up environment variables:**
+    Create a `.env` file in the root of the project by copying the `.env.example` file.
+    ```bash
+    cp .env.example .env
+    ```
+    Update the `.env` file with your credentials:
+    ```
+    PORT=3000
+    MONGODB_URI=<your-mongodb-uri>
+    JWT_SECRET=<your-jwt-secret>
+    PAYPACK_API_KEY=<your-paypack-api-key>
+    RESEND_API_KEY=<your-resend-api-key>
+    ```
+
+### Running the Application
+
+- **Development mode** (with auto-reloading):
+  ```bash
+  npm run dev
+  ```
+- **Production mode**:
+  ```bash
+  npm start
+  ```
+
+## 📁 Project Structure
 
 ```
 edumove/
 ├── src/
 │   ├── app.js           # Express app configuration
 │   ├── server.js        # Server entry point
-│   ├── controller/      # Route controllers
-│   ├── model/          # MongoDB models
-│   ├── routes/         # API routes
-│   ├── middlewares/    # Custom middleware functions
-│   └── utils/          # Utility functions
+│   ├── controller/      # Business logic for routes
+│   ├── model/           # MongoDB data models
+│   ├── routes/          # API route definitions
+│   ├── middlewares/     # Custom middleware (e.g., auth)
+│   ├── swagger/         # Swagger documentation setup
+│   └── utils/           # Utility functions (e.g., email, payment)
+├── .env                 # Environment variables
+├── .gitignore           # Git ignore file
+├── package.json         # Project metadata and dependencies
+└── README.md            # This file
 ```
 
-## Getting Started
+## 🤝 Contributing
 
-### Prerequisites
+Contributions are welcome! Please feel free to submit a pull request.
 
-- Node.js (v14 or higher)
-- MongoDB instance
-- PayPack account (for payments)
-- Resend account (for emails)
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a pull request.
 
-### Installation
+## 📜 License
 
-1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd edumove
-```
-
-2. Install dependencies
-
-```bash
-npm install
-```
-
-3. Set up environment variables:
-   - Copy `.env.example` to create your own `.env` file:
-   ```bash
-   cp .env.example .env
-   ```
-   - Update the values in `.env` with your actual configuration:
-   ```
-   PORT=<your-port>
-   MONGODB_URI=<your-mongodb-uri>
-   JWT_SECRET=<your-jwt-secret>
-   PAYPACK_API_KEY=<your-paypack-api-key>
-   RESEND_API_KEY=<your-resend-api-key>
-   ```
-
-### Running the Application
-
-Development mode:
-
-```bash
-npm run dev
-```
-
-Production mode:
-
-```bash
-npm start
-```
+This project is licensed under the MIT License. See the `LICENSE` file for details.
