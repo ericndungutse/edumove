@@ -27,9 +27,25 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const body = req.body;
-    if (!body.password) body.password = process.env.DEFAULT_PASSWORD;
+    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    if (!body.password) body.password = defaultPassword;
     const user = new User(req.body);
     await user.save();
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Welcome to EduMove',
+        body: `
+        <h1>Welcome, ${user.name}!</h1>
+        <p>Your account has been created successfully.</p>
+        <p>You can now login to your account using the following credentials:</p>
+        <p>Email: ${user.email}</p>
+        <p>Password: ${defaultPassword}</p>
+        `,
+      });
+    } catch (e) {
+      console.log('failed to send email', e.message);
+    }
     res.status(201).json(user);
   } catch (error) {
     handleError(res, error);
