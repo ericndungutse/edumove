@@ -33,6 +33,7 @@ export const createTravel = async (req, res) => {
 
     // Create a new travel record
     const travel = new Travel(req.body);
+    travel.travelDetails.paymentDetails.data.ref = checkout.data.ref;
     await travel.save();
 
     // Waiting for paymentrespose.data.id;
@@ -52,9 +53,10 @@ export const createTravel = async (req, res) => {
         clearInterval(intervalId);
         return res.status(400).json({
           status: 'fail',
-          message: 'Payment not completed.',
+          message: 'Payment not completed. Please, dial *182*7*1# to complete payment.',
         });
       }
+
       data = await findTransaction(checkout.data.ref);
     }
 
@@ -91,38 +93,49 @@ export const createTravel = async (req, res) => {
   }
 };
 
-// Will be required if user did not pay for the travel
-// export const webhook = async (req, res) => {
-//   //Extract X-Paypack-Signature headers from the request
-//   const requestHash = req.get('X-Paypack-Signature');
+// Verify Transaction and update travel record
+export const verifyTransaction = async (req, res) => {
+  try {
+    const { travelNumber } = req.params;
 
-//   //secret which you can find on your registered webhook
-//   const secret = process.env.WEBHOOK_SECRET_KEY;
+    // Find the travel record by transaction reference
+    const travel = await Travel.findOne({ travelNumber });
+    // console.log(travel);
 
-//   //Create a hash based on the parsed body
-//   const hash = crypto.createHmac('sha256', secret).update(req.rawBody).digest('base64');
+    if (!travel) {
+      return res.status(404).json({ message: 'Travel not found' });
+    }
 
-//   // Compare the created hash with the value of the X-Paypack-Signature headers
-//   if (!(hash === requestHash || req.Method != 'HEAD')) return res.send({});
+    const ref = travel.travelDetails.paymentDetails.data.ref;
 
-//   // Update Order Products
-//   // Find Order By Transaction Reference
+    // Verify the transaction using Pay pack
+    const transaction = await findTransaction(ref);
 
-//   // Check if transaction was successfull
-//   if (req?.body?.data?.status !== 'successful') return res.send({});
+    if (!transaction || transaction.data.status !== 'successful') {
+      return res.status(400).json({ message: 'Transaction not successful' });
+    }
 
-//   // Update Order and product qunatities
+    // Update the travel record with payment details
+    travel.travelDetails.paymentDetails.data.amount = transaction.data.amount;
+    travel.travelDetails.paymentDetails.data.client = transaction.data.client;
+    travel.travelDetails.paymentDetails.data.provider = transaction.data.provider;
+    travel.travelDetails.paymentDetails.data.status = transaction.data.status;
+    travel.travelDetails.paymentDetails.data.created_at = transaction.data.created_at;
 
-//   const order = await Order.findOne({
-//     tx_ref: req.body.data.ref,
-//   });
-//   await updateOrderAndProducts(order);
+    await travel.save({ validateBeforeSave: false });
 
-//   res.send({});
-// };
-
-// Get all travel records
-// ...existing code...
+    res.status(200).json({
+      status: 'success',
+      message: 'Transaction verified successfully',
+      data: {
+        travel,
+      },
+    });
+  } catch (error) {
+    console.error('Error verifying transaction:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // Get all travel records with filtering
 export const getAllTravels = async (req, res) => {

@@ -8,6 +8,7 @@ import {
   getTravelByTravelNumber,
   markArrivedAtDestination,
   markArrivedAtSchool,
+  verifyTransaction,
 } from '../controller/travel.controller.js';
 import { protect } from '../middlewares/authentication.js';
 import { restrictTo } from '../middlewares/authorization.js';
@@ -364,5 +365,35 @@ router.delete('/:id', deleteTravel);
 router.patch('/:travelNumber/boarding', protect, confirmBoarding);
 router.patch('/:scheduleId/arrived-at-destination', protect, restrictTo('transporter'), markArrivedAtDestination);
 router.patch('/:travelNumber/arrived-at-school', protect, restrictTo('school'), markArrivedAtSchool);
+
+/**
+ * @swagger
+ * /api/v1/travels/{travelNumber}/verify-transaction:
+ *   patch:
+ *     summary: Verify a transaction for a travel record
+ *     tags: [Travels]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: travelNumber
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The travel number
+ *     responses:
+ *       200:
+ *         description: Transaction verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Travel'
+ *       400:
+ *         description: Transaction not successful
+ *       404:
+ *         description: Travel not found
+ */
+// Verify transaction route
+router.patch('/:travelNumber/verify-transaction', verifyTransaction);
 
 export default router;
