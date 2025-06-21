@@ -48,31 +48,32 @@ erDiagram
         string email
         string phoneNumber
         string password
-        string role
+        string role "e.g., guardian, school, transporter"
     }
-
     School {
         string district
         string sector
         string cell
         string village
     }
-
     Transporter {
         string areaOfOperations
     }
-
     Plan {
         date date
         string destinations
     }
-
     Schedule {
         string departure
         string destination
         number price
     }
-
+    TimeSlot {
+        string time
+        number slots
+        string busNumber
+        date expectedArrivalTime
+    }
     Travel {
         string departure
         string destination
@@ -80,51 +81,39 @@ erDiagram
         string status
         string travelNumber
     }
+    Guardian {
+        string name
+        string email
+        string phoneNumber
+        string address
+    }
+    Student {
+        string name
+    }
+    Payment {
+        string ref
+        number amount
+        string client
+        string provider
+        string status
+    }
 
-    User ||--o{ School : "is a"
-    User ||--o{ Transporter : "is a"
+    User ||--o{ School : "discriminator"
+    User ||--o{ Transporter : "discriminator"
+
+    Transporter ||--|{ Schedule : "creates"
     Plan ||--|{ Schedule : "has"
-    Schedule ||--o{ Travel : "has"
-    Plan ||--o{ Travel : "has"
-    Transporter ||--o{ Schedule : "creates"
+
+    Schedule ||--|{ TimeSlot : "has"
+
+    Schedule ||--o{ Travel : "booked on"
+    Plan ||--o{ Travel : "part of"
     School ||--o{ Travel : "for"
     Transporter ||--o{ Travel : "by"
 
-    subgraph "Time Slot"
-        Schedule o-- "many" TimeSlot
-        TimeSlot {
-            string time
-            number slots
-            string busNumber
-            date expectedArrivalTime
-        }
-    end
-    subgraph "Guardian Info"
-        Travel o-- "1" Guardian
-        Guardian {
-            string name
-            string email
-            string phoneNumber
-            string address
-        }
-    end
-     subgraph "Student Info"
-        Travel o-- "1" Student
-        Student {
-            string name
-        }
-    end
-
-    subgraph "Payment Details"
-        Travel o-- "1" Payment
-        Payment{
-            string ref
-            number amount
-            string client
-            string provider
-            string status
-        }
-    end
+    Travel ||--|{ Guardian : "details"
+    Travel ||--|{ Student : "details"
+    Travel ||--|{ Payment : "details"
 ```
 
 ## 🔄 Workflows
@@ -151,36 +140,41 @@ graph TD
 
 ### Travel Booking
 
-The travel booking workflow involves multiple stakeholders and is designed for clarity and efficiency.
+The travel booking workflow involves multiple stakeholders and is designed for clarity and efficiency. It covers the journey from home to school and back.
 
 ```mermaid
 graph TD
     subgraph "Pre-Travel Setup (Admin/Transporter)"
-        A[Admin/Transporter defines a Travel Plan] --> B(Plan created with date and destinations);
-        B --> C{Transporter creates a Schedule};
-        C --> D(Schedule linked to Plan with departure,<br/>destination, price, and time slots);
+        A["Admin/Transporter defines a Travel Plan"] --> B("Plan created with date and destinations");
+        B --> C{"Transporter creates a Schedule"};
+        C --> D("Schedule linked to Plan with departure,<br/>destination, price, and time slots for<br/>BOTH Home-to-School and School-to-Home");
     end
 
     subgraph "Travel Booking (Guardian/Student)"
-        E[Guardian/Student browses available Schedules] --> F{Selects a Schedule};
-        F --> G[Provide Guardian and Student details];
-        G --> H{Initiate Payment};
-        H --> I{Payment successful?};
-        I -->|Yes| J[Create Travel record];
-        I -->|No| K[Fail and notify user];
-        J --> L[Link Travel to Schedule, Plan, User];
-        L --> M[Generate unique Travel Number];
-        M --> N[Notify Guardian, School, and Transporter];
+        E["Guardian/Student browses available Schedules"] --> F{"Selects a Schedule<br/>(Home-to-School or School-to-Home)"};
+        F --> G["Provide Guardian and Student details"];
+        G --> H{"Initiate Payment"};
+        H --> I{"Payment successful?"};
+        I -->|Yes| J["Create Travel record"];
+        I -->|No| K["Fail and notify user"];
+        J --> L["Link Travel to Schedule, Plan, User"];
+        L --> M["Generate unique Travel Number"];
+        M --> N["Notify Guardian, School, and Transporter"];
     end
 
-    subgraph "Travel Execution"
-       O[Student boards the bus] --> P{Update Travel status to 'Boarded'};
-       P --> Q[Bus arrives at destination] --> R{Update status to 'Arrived At Destination'};
-       R --> S[Bus arrives at school] --> T{Update status to 'Arrived At School'};
+    subgraph "Travel Execution: Home to School"
+       O["Student boards the bus at home"] --> P{"Update Travel status to 'Boarded'"};
+       P --> Q["Student arrives at school"] --> R{"Update status to 'Arrived At School'"};
+    end
+
+    subgraph "Travel Execution: School to Home"
+       S["Student leaves school and boards the bus"] --> T{"Update status to 'Left School'"};
+       T --> U["Student arrives at destination (home)"] --> V{"Update status to 'Arrived At Destination'"};
     end
 
     D --> E;
     N --> O;
+    N --> S;
     K --> E;
 ```
 
@@ -258,17 +252,3 @@ edumove/
 ├── package.json         # Project metadata and dependencies
 └── README.md            # This file
 ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a pull request.
-
-1.  Fork the repository.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a pull request.
-
-## 📜 License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
