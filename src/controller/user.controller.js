@@ -45,6 +45,29 @@ const updateUser = async (req, res) => {
   }
 };
 
+const updatePassword = async (req, res) => {
+  try {
+    // 1) Get User from collection
+    const user = await User.findById(req.user.id).select('+password');
+
+    // 2) Get body data
+    const { currentPassword, newPassword } = req.body;
+
+    // 3) Check if user exist and currentPassword is correct
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return res.status(401).json({ status: 'fail', message: 'Incorrect Password' });
+    }
+
+    // 4) Update user password
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ status: 'success', message: 'Password updated successfully' });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
@@ -104,6 +127,7 @@ export {
   getUserById,
   createUser,
   updateUser,
+  updatePassword,
   deleteUser,
   createTransporter,
   createSchool,

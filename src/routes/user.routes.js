@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, getAllUsers } from '../controller/user.controller.js';
+import { createUser, getAllUsers, updatePassword } from '../controller/user.controller.js';
 import { protect } from '../middlewares/authentication.js';
 import { restrictTo } from '../middlewares/authorization.js';
 
@@ -74,7 +74,37 @@ const router = express.Router();
  *                 $ref: '#/components/schemas/User'
  */
 
+/**
+ * @swagger
+ * /api/v1/users/update-password:
+ *   patch:
+ *     summary: Update user password
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       401:
+ *         description: Incorrect current password
+ */
+
 router.post('/', protect, restrictTo('admin'), createUser);
 router.get('/', protect, restrictTo('admin'), getAllUsers);
+router.patch('/update-password', protect, updatePassword);
 
 export default router;
