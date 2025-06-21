@@ -101,8 +101,6 @@ const createTransporter = async (req, res) => {
         <p>Password: ${defaultPassword}</p>
         `,
       });
-
-      console.log('Email Sent');
     } catch (e) {
       console.log('failed to send email', e.message);
     }
@@ -116,9 +114,26 @@ const createTransporter = async (req, res) => {
 const createSchool = async (req, res) => {
   try {
     const body = req.body;
-    if (!body.password) body.password = process.env.DEFAULT_PASSWORD;
+    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    if (!body.password) body.password = defaultPassword;
     const school = new School(body);
     await school.save();
+    // send welcome email
+    try {
+      await sendEmail({
+        to: school.email,
+        subject: 'Welcome to EduMove',
+        body: `
+        <h1>Welcome, ${school.name}!</h1>
+        <p>Your account has been created successfully.</p>
+        <p>You can now login to your account using the following credentials:</p>
+        <p>Email: ${school.email}</p>
+        <p>Password: ${defaultPassword}</p>
+        `,
+      });
+    } catch (e) {
+      console.log('failed to send email', e.message);
+    }
     res.status(201).json(school);
   } catch (error) {
     handleError(res, error);
